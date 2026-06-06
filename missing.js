@@ -16,6 +16,7 @@ const missingEls = {
   maintainTableFilter: document.querySelector("#maintainTableFilter"),
   missingFieldFilter: document.querySelector("#missingFieldFilter"),
   state: document.querySelector("#missingState"),
+  tableHead: document.querySelector("#missingTableHead"),
   rows: document.querySelector("#missingRows"),
   downloadButton: document.querySelector("#missingDownloadButton"),
   materialCount: document.querySelector("#missingMaterialCount"),
@@ -49,6 +50,33 @@ const missingFieldFilterConfig = {
 };
 
 const missingFilterConfigs = [maintainTableFilterConfig, missingFieldFilterConfig];
+const KINGDEE_MATERIAL_MISSING_FIELD = "物料编码未建档（金蝶物料列表C列）";
+const purchaseDetailColumns = [
+  { key: "maintainTable", label: "维护维度表" },
+  { key: "missingField", label: "待维护字段" },
+  { key: "businessUnits", label: "事业部" },
+  { key: "materialCode", label: "物料编码" },
+  { key: "sku", label: "SKU" },
+  { key: "itemName", label: "物品名称" },
+  { key: "supplier", label: "供应商" },
+  { key: "supplierShort", label: "供应商简称" },
+  { key: "orderUser", label: "采购下单人" },
+  { key: "rowCount", label: "订单行数", type: "number" },
+  { key: "orderedQty", label: "下单数量", type: "number" },
+  { key: "shippedQty", label: "发货数量", type: "number" },
+  { key: "remainingQty", label: "剩余数量", type: "number" },
+];
+const kingdeeMaterialColumns = [
+  { key: "maintainTable", label: "维护维度表" },
+  { key: "missingField", label: "待维护字段" },
+  { key: "businessUnits", label: "工作表" },
+  { key: "kingdeeColumnA", label: "金蝶A列" },
+  { key: "kingdeeColumnB", label: "金蝶B列" },
+  { key: "materialCode", label: "金蝶C列/物料编码" },
+  { key: "kingdeeColumnD", label: "金蝶D列" },
+  { key: "kingdeeColumnE", label: "金蝶E列" },
+  { key: "kingdeeColumnF", label: "金蝶F列" },
+];
 
 const orderColumnAliases = {
   materialCode: ["物料编码", "商品编码", "存货编码", "产品编码", "品号"],
@@ -114,7 +142,7 @@ function buildKingdeeMaterialMissingRows(kingdeeRows, categoryMap) {
     .filter((row) => row.materialCode && !categoryMap.has(normalizeMaterialCode(row.materialCode)))
     .map((row) => ({
       maintainTable: CATEGORY_TABLE,
-      missingField: "物料编码未建档（金蝶物料列表C列）",
+      missingField: KINGDEE_MATERIAL_MISSING_FIELD,
       businessUnits: row.sheetName,
       materialCode: row.materialCode,
       sku: row.sku,
@@ -122,6 +150,11 @@ function buildKingdeeMaterialMissingRows(kingdeeRows, categoryMap) {
       supplier: row.supplier,
       supplierShort: "",
       orderUser: "",
+      kingdeeColumnA: row.columnA,
+      kingdeeColumnB: row.columnB,
+      kingdeeColumnD: row.columnD,
+      kingdeeColumnE: row.columnE,
+      kingdeeColumnF: row.columnF,
       rowCount: 1,
       orderedQty: 0,
       shippedQty: 0,
@@ -289,7 +322,12 @@ function parseKingdeeMaterialRows(rows, sheetName) {
       seen.add(key);
       return {
         sheetName,
+        columnA: String(row[0] ?? "").trim(),
+        columnB: String(row[1] ?? "").trim(),
         materialCode,
+        columnD: String(row[3] ?? "").trim(),
+        columnE: String(row[4] ?? "").trim(),
+        columnF: String(row[5] ?? "").trim(),
         sku: String(row[1] ?? "").trim(),
         itemName: String(row[3] ?? row[4] ?? "").trim(),
         supplier: String(row[5] ?? "").trim(),
@@ -523,52 +561,54 @@ function renderMissingView() {
   missingEls.orderRowCount.textContent = formatNumber(sumBy(rows, "rowCount"));
   missingEls.state.textContent = message || (rows.length ? `待维护 ${rows.length} 条` : "暂无缺失");
   missingEls.downloadButton.disabled = Boolean(message) || !rows.length;
+  const columns = getVisibleColumns(rows);
+  renderMissingTableHead(columns);
   missingEls.rows.innerHTML = rows.length
-    ? rows.map(renderMissingRow).join("")
-    : `<tr><td colspan="13" class="empty-table-cell">${escapeHtml(message || "暂无缺失")}</td></tr>`;
+    ? rows.map((row) => renderMissingRow(row, columns)).join("")
+    : `<tr><td colspan="${columns.length}" class="empty-table-cell">${escapeHtml(message || "暂无缺失")}</td></tr>`;
 }
 
-function renderMissingRow(row) {
+function getVisibleColumns(rows) {
+  const hasOnlyKingdeeRows = rows.length && rows.every((row) => row.missingField === KINGDEE_MATERIAL_MISSING_FIELD);
+  return hasOnlyKingdeeRows ? kingdeeMaterialColumns : purchaseDetailColumns;
+}
+
+function renderMissingTableHead(columns) {
+  missingEls.tableHead.innerHTML = `
+    <tr>
+      ${columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("")}
+    </tr>
+  `;
+}
+
+function renderMissingRow(row, columns) {
   return `
     <tr>
-      <td>${escapeHtml(row.maintainTable || "--")}</td>
-      <td>${escapeHtml(row.missingField || "--")}</td>
-      <td>${escapeHtml(row.businessUnits || "--")}</td>
-      <td>${escapeHtml(row.materialCode || "--")}</td>
-      <td>${escapeHtml(row.sku || "--")}</td>
-      <td>${escapeHtml(row.itemName || "--")}</td>
-      <td>${escapeHtml(row.supplier || "--")}</td>
-      <td>${escapeHtml(row.supplierShort || "--")}</td>
-      <td>${escapeHtml(row.orderUser || "--")}</td>
-      <td>${formatNumber(row.rowCount)}</td>
-      <td>${formatNumber(row.orderedQty)}</td>
-      <td>${formatNumber(row.shippedQty)}</td>
-      <td>${formatNumber(row.remainingQty)}</td>
+      ${columns.map((column) => `<td>${formatCell(row, column)}</td>`).join("")}
     </tr>
   `;
 }
 
 function downloadMissingRows() {
   if (!missingState.filteredRows.length || !window.XLSX) return;
-  const exportRows = missingState.filteredRows.map((row) => ({
-    维护维度表: row.maintainTable,
-    待维护字段: row.missingField,
-    事业部: row.businessUnits,
-    物料编码: row.materialCode,
-    SKU: row.sku,
-    物品名称: row.itemName,
-    供应商: row.supplier,
-    供应商简称: row.supplierShort,
-    采购下单人: row.orderUser,
-    订单行数: row.rowCount,
-    下单数量: row.orderedQty,
-    发货数量: row.shippedQty,
-    剩余数量: row.remainingQty,
-  }));
+  const columns = getVisibleColumns(missingState.filteredRows);
+  const exportRows = missingState.filteredRows.map((row) =>
+    Object.fromEntries(columns.map((column) => [column.label, getRawCellValue(row, column)]))
+  );
   const worksheet = window.XLSX.utils.json_to_sheet(exportRows);
   const workbook = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(workbook, worksheet, "待维护明细");
   window.XLSX.writeFile(workbook, `待维护明细_${formatDateForFileName(new Date())}.xlsx`);
+}
+
+function formatCell(row, column) {
+  const value = getRawCellValue(row, column);
+  if (column.type === "number") return formatNumber(value);
+  return escapeHtml(value || "--");
+}
+
+function getRawCellValue(row, column) {
+  return row[column.key] ?? "";
 }
 
 function updateSourceNote(purchaseRecord, kingdeeMaterialRecord) {
