@@ -52,31 +52,31 @@
 
         <section class="metrics-grid missing-metrics" aria-label="信息缺失指标">
           <article class="metric">
-            <span>缺失物料数</span>
+            <span>待维护物料数</span>
             <strong id="missingMaterialCount">0</strong>
-            <small>按物料编码去重</small>
+            <small>按当前筛选后的物料编码去重</small>
           </article>
           <article class="metric">
-            <span>商品分类缺失</span>
+            <span>商品分类维护项</span>
             <strong id="missingCategoryCount">0</strong>
             <small>维护 Dim-YL医疗器械商品分类</small>
           </article>
           <article class="metric">
-            <span>采购分工缺失</span>
+            <span>采购分工维护项</span>
             <strong id="missingPurchaseCount">0</strong>
-            <small>维护 Dim-采购分工明细</small>
+            <small>维护 Dim-采购部分工明细</small>
           </article>
           <article class="metric alert">
             <span>影响订单行</span>
             <strong id="missingOrderRowCount">0</strong>
-            <small>来自 Fac-采购订单跟进表</small>
+            <small>来自事实表采购未交付表</small>
           </article>
         </section>
 
         <section class="panel table-panel missing-table-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Missing Details</p>
+              <p class="eyebrow">Maintenance Details</p>
               <h2>待维护明细</h2>
             </div>
             <div class="table-actions">
@@ -88,20 +88,23 @@
             <table class="missing-table">
               <thead>
                 <tr>
-                  <th>涉及看板</th>
+                  <th>维护维度表</th>
+                  <th>待维护字段</th>
                   <th>事业部</th>
                   <th>物料编码</th>
                   <th>SKU</th>
                   <th>物品名称</th>
-                  <th>缺失字段</th>
-                  <th>建议维护表</th>
+                  <th>供应商</th>
+                  <th>供应商简称</th>
+                  <th>采购下单人</th>
                   <th>订单行数</th>
                   <th>下单数量</th>
+                  <th>发货数量</th>
                   <th>剩余数量</th>
                 </tr>
               </thead>
               <tbody id="missingRows">
-                <tr><td colspan="10" class="empty-table-cell">等待数据</td></tr>
+                <tr><td colspan="13" class="empty-table-cell">等待数据</td></tr>
               </tbody>
             </table>
           </div>
@@ -110,6 +113,6 @@
     </div>
 
     <script src="./vendor/xlsx.full.min.js?v=20260601-1"></script>
-    <script src="./missing.js?v=20260606-4"></script>
+    <script src="./missing.js?v=20260606-5"></script>
   </body>
 </html>
