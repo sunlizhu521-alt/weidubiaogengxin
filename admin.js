@@ -8,7 +8,7 @@ const librarySlots = [
     store: "dimension-files",
     id: "dimension-1",
     library: "\u7ef4\u5ea6\u8868",
-    label: "采购未交付表",
+    label: "Dim-采购部分工明细",
   },
   {
     store: "dimension-files",
@@ -56,7 +56,7 @@ const librarySlots = [
     store: "dimension-files",
     id: "dimension-9",
     library: "\u7ef4\u5ea6\u8868",
-    label: "备用",
+    label: "Dim-FBA商品SKU匹配",
   },
 ];
 

@@ -32,13 +32,13 @@ const librarySlots = [
     store: "fact-files",
     id: "fact-5",
     library: "\u4e8b\u5b9e\u8868",
-    label: "采购分工表",
+    label: "采购未交付表",
   },
   {
     store: "fact-files",
     id: "fact-6",
     library: "\u4e8b\u5b9e\u8868",
-    label: "采购未交付表",
+    label: "备用",
   },
 ];
 
