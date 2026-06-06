@@ -2,8 +2,8 @@ const DB_NAME = "supply-chain-library";
 const DB_VERSION = 3;
 const DIMENSION_STORE_NAME = "dimension-files";
 const FACT_STORE_NAME = "fact-files";
-const CATEGORY_DIMENSION_SLOT = "dimension-1";
-const PURCHASE_ASSIGNMENT_SLOT = "dimension-6";
+const CATEGORY_DIMENSION_SLOT = "dimension-3";
+const PURCHASE_ASSIGNMENT_SLOT = "dimension-9";
 const PURCHASE_ORDER_SLOT = "fact-1";
 const SOURCE_LABEL = "数据来源：本地文件库 / 信息缺失";
 
