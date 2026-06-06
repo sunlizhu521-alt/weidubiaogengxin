@@ -67,15 +67,12 @@ const purchaseDetailColumns = [
   { key: "remainingQty", label: "剩余数量", type: "number" },
 ];
 const kingdeeMaterialColumns = [
-  { key: "maintainTable", label: "维护维度表" },
-  { key: "missingField", label: "待维护字段" },
-  { key: "businessUnits", label: "工作表" },
-  { key: "kingdeeColumnA", label: "金蝶A列" },
-  { key: "kingdeeColumnB", label: "金蝶B列" },
-  { key: "materialCode", label: "金蝶C列/物料编码" },
-  { key: "kingdeeColumnD", label: "金蝶D列" },
-  { key: "kingdeeColumnE", label: "金蝶E列" },
-  { key: "kingdeeColumnF", label: "金蝶F列" },
+  { key: "materialCode", label: "物料编码" },
+  { key: "lingxingSku", label: "领星SKU" },
+  { key: "sku", label: "SKU" },
+  { key: "itemName", label: "名称" },
+  { key: "createdDate", label: "创建日期" },
+  { key: "materialGroup", label: "物料分组" },
 ];
 
 const orderColumnAliases = {
@@ -88,6 +85,14 @@ const orderColumnAliases = {
   orderedQty: ["下单数量-备货需求-OA申请为准", "下单数量", "订单数量"],
   shippedQty: ["发货数量", "已发货数量"],
   remainingQty: ["未发货数量", "剩余数量", "未交付数量"],
+};
+const kingdeeColumnAliases = {
+  materialCode: ["物料编码", "物料代码", "编码"],
+  lingxingSku: ["领星SKU", "领星sku"],
+  sku: ["SKU", "sku"],
+  itemName: ["名称", "物料名称", "商品名称", "品名"],
+  createdDate: ["创建日期", "创建时间", "新增日期"],
+  materialGroup: ["物料分组", "分组", "物料类别"],
 };
 
 async function initMissingDashboard() {
@@ -145,16 +150,14 @@ function buildKingdeeMaterialMissingRows(kingdeeRows, categoryMap) {
       missingField: KINGDEE_MATERIAL_MISSING_FIELD,
       businessUnits: row.sheetName,
       materialCode: row.materialCode,
+      lingxingSku: row.lingxingSku,
       sku: row.sku,
       itemName: row.itemName,
       supplier: row.supplier,
       supplierShort: "",
       orderUser: "",
-      kingdeeColumnA: row.columnA,
-      kingdeeColumnB: row.columnB,
-      kingdeeColumnD: row.columnD,
-      kingdeeColumnE: row.columnE,
-      kingdeeColumnF: row.columnF,
+      createdDate: row.createdDate,
+      materialGroup: row.materialGroup,
       rowCount: 1,
       orderedQty: 0,
       shippedQty: 0,
@@ -313,27 +316,40 @@ async function readKingdeeMaterialWorkbook(file) {
 
 function parseKingdeeMaterialRows(rows, sheetName) {
   const seen = new Set();
+  const headerIndex = findKingdeeHeaderIndex(rows);
+  const headers = headerIndex >= 0 ? rows[headerIndex].map((cell) => String(cell || "").trim()) : [];
+  const headerMap = headerIndex >= 0 ? createAliasHeaderMap(headers, kingdeeColumnAliases) : {};
+  const fallbackMap = {
+    lingxingSku: 0,
+    sku: 1,
+    materialCode: 2,
+    itemName: 3,
+    createdDate: 4,
+    materialGroup: 5,
+  };
+  const columnMap = { ...fallbackMap, ...headerMap };
   return rows
-    .slice(1)
+    .slice(headerIndex >= 0 ? headerIndex + 1 : 1)
     .map((row) => {
-      const materialCode = String(row[2] ?? "").trim();
+      const materialCode = getRowValue(row, columnMap.materialCode);
       const key = normalizeMaterialCode(materialCode);
       if (!key || seen.has(key)) return null;
       seen.add(key);
       return {
         sheetName,
-        columnA: String(row[0] ?? "").trim(),
-        columnB: String(row[1] ?? "").trim(),
         materialCode,
-        columnD: String(row[3] ?? "").trim(),
-        columnE: String(row[4] ?? "").trim(),
-        columnF: String(row[5] ?? "").trim(),
-        sku: String(row[1] ?? "").trim(),
-        itemName: String(row[3] ?? row[4] ?? "").trim(),
-        supplier: String(row[5] ?? "").trim(),
+        lingxingSku: getRowValue(row, columnMap.lingxingSku),
+        sku: getRowValue(row, columnMap.sku),
+        itemName: getRowValue(row, columnMap.itemName),
+        createdDate: formatExcelDateValue(row[columnMap.createdDate]),
+        materialGroup: getRowValue(row, columnMap.materialGroup),
       };
     })
     .filter(Boolean);
+}
+
+function findKingdeeHeaderIndex(rows) {
+  return rows.findIndex((row) => row.some((cell) => hasAliasHeader(cell, kingdeeColumnAliases)));
 }
 
 function parsePurchaseUndeliveredSheet(rows, businessUnit) {
@@ -373,19 +389,29 @@ async function readWorkbookRows(file, preferredSheetName = "") {
 }
 
 function createHeaderMap(headers) {
+  return createAliasHeaderMap(headers, orderColumnAliases);
+}
+
+function createAliasHeaderMap(headers, aliasMap) {
   return Object.fromEntries(
-    Object.entries(orderColumnAliases)
-      .map(([key, aliases]) => {
-        const index = headers.findIndex((header) => aliases.some((alias) => normalizeHeader(header) === normalizeHeader(alias)));
-        return [key, index >= 0 ? index : undefined];
-      })
+    Object.entries(aliasMap)
+      .map(([key, aliases]) => [key, findAliasHeaderIndex(headers, aliases)])
       .filter(([, index]) => index !== undefined)
   );
 }
 
+function findAliasHeaderIndex(headers, aliases) {
+  const index = headers.findIndex((header) => aliases.some((alias) => normalizeHeader(header) === normalizeHeader(alias)));
+  return index >= 0 ? index : undefined;
+}
+
 function hasKnownHeader(value) {
+  return hasAliasHeader(value, orderColumnAliases);
+}
+
+function hasAliasHeader(value, aliasMap) {
   const header = normalizeHeader(value);
-  return Object.values(orderColumnAliases).some((aliases) => aliases.some((alias) => normalizeHeader(alias) === header));
+  return Object.values(aliasMap).some((aliases) => aliases.some((alias) => normalizeHeader(alias) === header));
 }
 
 function inferMaterialCodeColumn(headers, dataRows, usedColumns) {
@@ -677,6 +703,20 @@ function normalizeMaterialCode(value) {
 function parseNumber(value) {
   const number = Number(String(value || "").replace(/,/g, "").trim());
   return Number.isFinite(number) ? number : 0;
+}
+
+function formatExcelDateValue(value) {
+  if (value === undefined || value === null || value === "") return "";
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return formatDateOnly(value);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+    return Number.isNaN(date.getTime()) ? String(value) : formatDateOnly(date);
+  }
+  return String(value).trim();
+}
+
+function formatDateOnly(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function sumBy(items, key) {
