@@ -5,6 +5,7 @@ const FACT_STORE_NAME = "fact-files";
 const CATEGORY_DIMENSION_SLOT = "dimension-3";
 const PURCHASE_ASSIGNMENT_SLOT = "dimension-1";
 const PURCHASE_UNDELIVERED_FACT_SLOT = "fact-5";
+const KINGDEE_MATERIAL_FACT_SLOT = "fact-3";
 const CATEGORY_TABLE = "Dim-YL医疗器械商品分类";
 const PURCHASE_TABLE = "Dim-采购部分工明细";
 const SOURCE_LABEL = "数据来源：本地文件库 / 信息缺失";
@@ -74,32 +75,59 @@ async function initMissingDashboard() {
 async function loadMissingData() {
   try {
     const db = await openAppDb();
-    const [factRecord, categoryRecord, purchaseRecord] = await Promise.all([
+    const [factRecord, kingdeeMaterialRecord, categoryRecord, purchaseRecord] = await Promise.all([
       getRecord(db, FACT_STORE_NAME, PURCHASE_UNDELIVERED_FACT_SLOT),
+      getRecord(db, FACT_STORE_NAME, KINGDEE_MATERIAL_FACT_SLOT),
       getRecord(db, DIMENSION_STORE_NAME, CATEGORY_DIMENSION_SLOT),
       getRecord(db, DIMENSION_STORE_NAME, PURCHASE_ASSIGNMENT_SLOT),
     ]);
     db.close();
 
     const appliedFact = getAppliedLibraryRecord(factRecord);
+    const appliedKingdeeMaterial = getAppliedLibraryRecord(kingdeeMaterialRecord);
     const appliedCategory = getAppliedLibraryRecord(categoryRecord);
     const appliedPurchase = getAppliedLibraryRecord(purchaseRecord);
 
-    if (!appliedFact?.file) {
-      renderMissing([], "请先在事实表文件库上传并确认应用采购未交付表");
+    if (!appliedFact?.file && !appliedKingdeeMaterial?.file) {
+      renderMissing([], "请先在事实表文件库上传并确认应用采购未交付表或金蝶物料列表");
       return;
     }
 
-    const factRows = await readPurchaseUndeliveredWorkbook(appliedFact.file);
+    const factRows = appliedFact?.file ? await readPurchaseUndeliveredWorkbook(appliedFact.file) : [];
+    const kingdeeMaterialRows = appliedKingdeeMaterial?.file ? await readKingdeeMaterialWorkbook(appliedKingdeeMaterial.file) : [];
     const categoryMap = appliedCategory?.file ? await readCategoryDimension(appliedCategory.file) : new Map();
     const purchaseMap = appliedPurchase?.file ? await readPurchaseAssignment(appliedPurchase.file) : new Map();
-    const rows = buildMissingRows(factRows, categoryMap, purchaseMap);
-    updateSourceNote(appliedFact);
+    const rows = [
+      ...buildMissingRows(factRows, categoryMap, purchaseMap),
+      ...buildKingdeeMaterialMissingRows(kingdeeMaterialRows, categoryMap),
+    ];
+    updateSourceNote(appliedFact, appliedKingdeeMaterial);
     renderMissing(rows);
   } catch (error) {
     console.error(error);
     renderMissing([], "信息缺失读取失败");
   }
+}
+
+function buildKingdeeMaterialMissingRows(kingdeeRows, categoryMap) {
+  return kingdeeRows
+    .filter((row) => row.materialCode && !categoryMap.has(normalizeMaterialCode(row.materialCode)))
+    .map((row) => ({
+      maintainTable: CATEGORY_TABLE,
+      missingField: "物料编码未建档（金蝶物料列表C列）",
+      businessUnits: row.sheetName,
+      materialCode: row.materialCode,
+      sku: row.sku,
+      itemName: row.itemName,
+      supplier: row.supplier,
+      supplierShort: "",
+      orderUser: "",
+      rowCount: 1,
+      orderedQty: 0,
+      shippedQty: 0,
+      remainingQty: 0,
+    }))
+    .sort((a, b) => String(a.materialCode).localeCompare(String(b.materialCode), "zh-CN"));
 }
 
 function buildMissingRows(factRows, categoryMap, purchaseMap) {
@@ -235,6 +263,39 @@ async function readPurchaseUndeliveredWorkbook(file) {
     const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
     return parsePurchaseUndeliveredSheet(rows, getBusinessUnitFromSheetName(sheetName));
   });
+}
+
+async function readKingdeeMaterialWorkbook(file) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension === "csv") {
+    return parseKingdeeMaterialRows(csvToRows(await file.text()), "金蝶物料列表");
+  }
+  if (!window.XLSX) throw new Error("XLSX parser is not available.");
+  const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
+  return workbook.SheetNames.flatMap((sheetName) => {
+    const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
+    return parseKingdeeMaterialRows(rows, sheetName);
+  });
+}
+
+function parseKingdeeMaterialRows(rows, sheetName) {
+  const seen = new Set();
+  return rows
+    .slice(1)
+    .map((row) => {
+      const materialCode = String(row[2] ?? "").trim();
+      const key = normalizeMaterialCode(materialCode);
+      if (!key || seen.has(key)) return null;
+      seen.add(key);
+      return {
+        sheetName,
+        materialCode,
+        sku: String(row[1] ?? "").trim(),
+        itemName: String(row[3] ?? row[4] ?? "").trim(),
+        supplier: String(row[5] ?? "").trim(),
+      };
+    })
+    .filter(Boolean);
 }
 
 function parsePurchaseUndeliveredSheet(rows, businessUnit) {
@@ -510,9 +571,18 @@ function downloadMissingRows() {
   window.XLSX.writeFile(workbook, `待维护明细_${formatDateForFileName(new Date())}.xlsx`);
 }
 
-function updateSourceNote(sourceRecord) {
-  const time = sourceRecord?.appliedAt || sourceRecord?.savedAt || "";
-  missingEls.sourceNote.textContent = `${SOURCE_LABEL}｜事实表：采购未交付表｜引用时间：${time ? formatDateTime(time) : "--"}`;
+function updateSourceNote(purchaseRecord, kingdeeMaterialRecord) {
+  const times = [purchaseRecord, kingdeeMaterialRecord]
+    .map((record) => record?.appliedAt || record?.savedAt || "")
+    .filter(Boolean)
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()));
+  const latestTime = times.length ? new Date(Math.max(...times.map((date) => date.getTime()))).toISOString() : "";
+  const factNames = [
+    purchaseRecord?.file ? "采购未交付表" : "",
+    kingdeeMaterialRecord?.file ? "金蝶物料列表" : "",
+  ].filter(Boolean).join("、") || "--";
+  missingEls.sourceNote.textContent = `${SOURCE_LABEL}｜事实表：${factNames}｜引用时间：${latestTime ? formatDateTime(latestTime) : "--"}`;
 }
 
 function openAppDb() {
