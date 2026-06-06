@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>维度表更新</title>
+    <link rel="stylesheet" href="./styles.css?v=20260606-1" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="&#30475;&#26495;&#23548;&#33322;">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-wave wave-a"></span>
+            <span class="brand-wave wave-b"></span>
+            <span class="brand-wave wave-c"></span>
+            <span class="brand-wave wave-d"></span>
+          </span>
+          <div>
+            <strong>维度表更新</strong>
+            <span>维护人孙立柱</span>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <a class="active" href="./admin.html">文件库更新</a>
+          <a href="./missing.html">信息缺失</a>
+        </nav>
+      </aside>
+
+      <main class="dashboard">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">File Library Update</p>
+            <h1>&#25991;&#20214;&#24211;&#26356;&#26032;</h1>
+            <small class="source-note">上传或拖拽文件后，点击确认应用刷新；数据保存在当前浏览器本地。</small>
+          </div>
+        </header>
+
+        <section class="panel admin-library-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Local Files</p>
+              <h2>&#25991;&#20214;&#19978;&#20256;&#19982;&#24212;&#29992;</h2>
+            </div>
+            <button id="clearLibraryCacheButton" class="danger-button admin-link-button" type="button">&#19968;&#38190;&#28165;&#38500;&#32531;&#23384;</button>
+          </div>
+          <div class="admin-library-grid" id="adminLibrarySlots"></div>
+        </section>
+
+        <section class="panel admin-reference-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Reference Status</p>
+              <h2>&#26412;&#22320;&#24341;&#29992;&#29366;&#24577;</h2>
+            </div>
+            <span class="upload-state" id="adminReferenceState">&#35835;&#21462;&#20013;</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-reference-table">
+              <thead>
+                <tr>
+                  <th>&#25991;&#20214;&#24211;</th>
+                  <th>&#24341;&#29992;&#34920;</th>
+                  <th>&#25991;&#20214;&#21517;</th>
+                  <th>&#21047;&#26032;&#26376;&#20221;</th>
+                  <th>&#26356;&#26032;&#26102;&#38388;</th>
+                  <th>&#24341;&#29992;&#26102;&#38388;</th>
+                  <th>&#29366;&#24577;</th>
+                </tr>
+              </thead>
+              <tbody id="adminReferenceRows">
+                <tr><td colspan="7" class="empty-table-cell">&#35835;&#21462;&#20013;</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./admin.js?v=20260606-1"></script>
+  </body>
+</html>

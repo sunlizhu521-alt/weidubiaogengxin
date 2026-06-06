@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>信息缺失 - 维度表更新</title>
+    <link rel="stylesheet" href="./styles.css?v=20260606-6" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="看板导航">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-wave wave-a"></span>
+            <span class="brand-wave wave-b"></span>
+            <span class="brand-wave wave-c"></span>
+            <span class="brand-wave wave-d"></span>
+          </span>
+          <div>
+            <strong>维度表更新</strong>
+            <span>维护人孙立柱</span>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <a href="./admin.html">文件库更新</a>
+          <a class="active" href="./missing.html">信息缺失</a>
+        </nav>
+      </aside>
+
+      <main class="dashboard missing-dashboard">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Missing Master Data</p>
+            <h1>信息缺失</h1>
+            <small class="source-note" id="missingSourceNote">数据来源：本地文件库｜引用时间：--</small>
+          </div>
+        </header>
+
+        <section class="panel missing-filter-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Filters</p>
+              <h2>筛选器</h2>
+            </div>
+          </div>
+          <div class="missing-filter-bar" id="missingFilterBar">
+            <div class="multi-filter" id="maintainTableFilter" data-filter-key="maintainTable"></div>
+            <div class="multi-filter" id="missingFieldFilter" data-filter-key="missingField"></div>
+          </div>
+        </section>
+
+        <section class="metrics-grid missing-metrics" aria-label="信息缺失指标">
+          <article class="metric">
+            <span>缺失物料数</span>
+            <strong id="missingMaterialCount">0</strong>
+            <small>按物料编码去重</small>
+          </article>
+          <article class="metric">
+            <span>商品分类缺失</span>
+            <strong id="missingCategoryCount">0</strong>
+            <small>维护 Dim-YL医疗器械商品分类</small>
+          </article>
+          <article class="metric">
+            <span>采购分工缺失</span>
+            <strong id="missingPurchaseCount">0</strong>
+            <small>维护 Dim-采购分工明细</small>
+          </article>
+          <article class="metric alert">
+            <span>影响订单行</span>
+            <strong id="missingOrderRowCount">0</strong>
+            <small>来自 Fac-采购订单跟进表</small>
+          </article>
+        </section>
+
+        <section class="panel table-panel missing-table-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Missing Details</p>
+              <h2>待维护明细</h2>
+            </div>
+            <div class="table-actions">
+              <button id="missingDownloadButton" type="button" disabled>下载明细</button>
+              <span class="upload-state" id="missingState">等待数据</span>
+            </div>
+          </div>
+          <div class="table-wrap missing-table-wrap">
+            <table class="missing-table">
+              <thead>
+                <tr>
+                  <th>涉及看板</th>
+                  <th>事业部</th>
+                  <th>物料编码</th>
+                  <th>SKU</th>
+                  <th>物品名称</th>
+                  <th>缺失字段</th>
+                  <th>建议维护表</th>
+                  <th>订单行数</th>
+                  <th>下单数量</th>
+                  <th>剩余数量</th>
+                </tr>
+              </thead>
+              <tbody id="missingRows">
+                <tr><td colspan="10" class="empty-table-cell">等待数据</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./vendor/xlsx.full.min.js?v=20260601-1"></script>
+    <script src="./missing.js?v=20260606-3"></script>
+  </body>
+</html>
