@@ -1,7 +1,6 @@
 const DB_NAME = "supply-chain-library";
 const DB_VERSION = 3;
 const LOCAL_LIBRARY_SOURCE = "local-upload";
-const LIBRARY_UNLOCK_KEYS = ["dimension-library-key-unlocked-v2", "fact-library-key-unlocked-v2"];
 
 const librarySlots = [
   {
@@ -181,14 +180,15 @@ async function deleteSlot(slotId) {
 }
 
 async function clearLibraryCache() {
-  const confirmed = window.confirm("\u786e\u8ba4\u6e05\u9664\u5f53\u524d\u6d4f\u89c8\u5668\u91cc\u7684\u6240\u6709\u6587\u4ef6\u5e93\u7f13\u5b58\u5417\uff1f\u6e05\u9664\u540e\u9700\u8981\u91cd\u65b0\u4e0a\u4f20\u5e76\u786e\u8ba4\u5e94\u7528\u5237\u65b0\u3002");
+  const confirmed = window.confirm("\u786e\u8ba4\u6e05\u9664\u5f53\u524d\u9875\u9762\u7684\u4e8b\u5b9e\u8868\u6587\u4ef6\u5e93\u7f13\u5b58\u5417\uff1f\u6e05\u9664\u540e\u9700\u8981\u91cd\u65b0\u4e0a\u4f20\u5e76\u786e\u8ba4\u5e94\u7528\u5237\u65b0\u3002");
   if (!confirmed) return;
 
   adminEls.clearCacheButton.disabled = true;
   adminEls.referenceState.textContent = "\u6e05\u9664\u4e2d";
+  let db;
   try {
-    await deleteLibraryDatabase();
-    LIBRARY_UNLOCK_KEYS.forEach((key) => localStorage.removeItem(key));
+    db = await openAppDb();
+    await Promise.all(librarySlots.map((slot) => deleteRecord(db, slot.store, slot.id)));
     adminState.records = new Map();
     renderLibrarySlots();
     renderReferenceRows();
@@ -197,6 +197,7 @@ async function clearLibraryCache() {
     console.warn("clear library cache failed", error);
     adminEls.referenceState.textContent = "\u6e05\u9664\u5931\u8d25";
   } finally {
+    if (db) db.close();
     adminEls.clearCacheButton.disabled = false;
   }
 }
@@ -344,15 +345,6 @@ function runStoreRequest(db, storeName, mode, createRequest) {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
     transaction.onerror = () => reject(transaction.error);
-  });
-}
-
-function deleteLibraryDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase(DB_NAME);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error("\u6587\u4ef6\u5e93\u6b63\u5728\u88ab\u5176\u4ed6\u9875\u9762\u5360\u7528\uff0c\u8bf7\u5173\u95ed\u5176\u4ed6\u770b\u677f\u9875\u9762\u540e\u91cd\u8bd5"));
   });
 }
 
