@@ -44,6 +44,7 @@ const librarySlots = [
 
 const adminEls = {
   slots: document.querySelector("#adminLibrarySlots"),
+  oneClickApplyButton: document.querySelector("#oneClickApplyButton"),
   clearCacheButton: document.querySelector("#clearLibraryCacheButton"),
   referenceState: document.querySelector("#adminReferenceState"),
   referenceRows: document.querySelector("#adminReferenceRows"),
@@ -96,6 +97,7 @@ function bindAdminEvents() {
     await saveFile(card.dataset.adminDrop, file);
   });
 
+  adminEls.oneClickApplyButton.addEventListener("click", applyAllSlots);
   adminEls.clearCacheButton.addEventListener("click", clearLibraryCache);
 }
 
@@ -137,29 +139,37 @@ async function applySlot(slotId) {
   const record = adminState.records.get(slotId);
   if (!record) return;
   const appliedAt = new Date().toISOString();
-  const updatedRecord = record.pendingFile
-    ? clearPendingFields({
-        ...record,
-        file: record.pendingFile,
-        name: record.pendingName,
-        size: record.pendingSize,
-        typeLabel: record.pendingTypeLabel,
-        refreshMonth: record.pendingRefreshMonth,
-        savedAt: record.pendingSavedAt,
-        librarySource: LOCAL_LIBRARY_SOURCE,
-        applied: true,
-        appliedAt,
-      })
-    : {
-        ...record,
-        librarySource: record.librarySource || LOCAL_LIBRARY_SOURCE,
-        applied: true,
-        appliedAt,
-      };
+  const updatedRecord = createAppliedRecord(record, appliedAt);
   const db = await openAppDb();
   await putRecord(db, slot.store, updatedRecord);
   db.close();
   await refreshAdmin();
+}
+
+async function applyAllSlots() {
+  const slotsToApply = librarySlots.filter((slot) => {
+    const record = adminState.records.get(slot.id);
+    return record?.pendingFile || (record && !record.applied);
+  });
+  if (!slotsToApply.length) return;
+
+  adminEls.oneClickApplyButton.disabled = true;
+  adminEls.referenceState.textContent = "应用中";
+  let db;
+  try {
+    db = await openAppDb();
+    const appliedAt = new Date().toISOString();
+    await Promise.all(
+      slotsToApply.map((slot) => putRecord(db, slot.store, createAppliedRecord(adminState.records.get(slot.id), appliedAt)))
+    );
+    await refreshAdmin();
+  } catch (error) {
+    console.warn("apply all library slots failed", error);
+    adminEls.referenceState.textContent = "应用失败";
+  } finally {
+    if (db) db.close();
+    adminEls.oneClickApplyButton.disabled = false;
+  }
 }
 
 async function deleteSlot(slotId) {
@@ -275,6 +285,28 @@ function clearPendingFields(record) {
   delete nextRecord.pendingSavedAt;
   delete nextRecord.pendingLibrarySource;
   return nextRecord;
+}
+
+function createAppliedRecord(record, appliedAt) {
+  return record.pendingFile
+    ? clearPendingFields({
+        ...record,
+        file: record.pendingFile,
+        name: record.pendingName,
+        size: record.pendingSize,
+        typeLabel: record.pendingTypeLabel,
+        refreshMonth: record.pendingRefreshMonth,
+        savedAt: record.pendingSavedAt,
+        librarySource: LOCAL_LIBRARY_SOURCE,
+        applied: true,
+        appliedAt,
+      })
+    : {
+        ...record,
+        librarySource: record.librarySource || LOCAL_LIBRARY_SOURCE,
+        applied: true,
+        appliedAt,
+      };
 }
 
 function openAppDb() {
