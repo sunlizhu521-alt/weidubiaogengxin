@@ -22,6 +22,36 @@ const librarySlots = [
     library: "\u4e8b\u5b9e\u8868",
     label: "Fac-\u91c7\u8d2d\u8ba2\u5355\u8ddf\u8fdb\u8868",
   },
+  {
+    store: "dimension-files",
+    id: "dimension-2",
+    library: "\u7ef4\u5ea6\u8868",
+    label: "\u7ef4\u5ea6\u8868 2",
+  },
+  {
+    store: "dimension-files",
+    id: "dimension-3",
+    library: "\u7ef4\u5ea6\u8868",
+    label: "\u7ef4\u5ea6\u8868 3",
+  },
+  {
+    store: "dimension-files",
+    id: "dimension-4",
+    library: "\u7ef4\u5ea6\u8868",
+    label: "\u7ef4\u5ea6\u8868 4",
+  },
+  {
+    store: "dimension-files",
+    id: "dimension-5",
+    library: "\u7ef4\u5ea6\u8868",
+    label: "\u7ef4\u5ea6\u8868 5",
+  },
+  {
+    store: "fact-files",
+    id: "fact-2",
+    library: "\u4e8b\u5b9e\u8868",
+    label: "\u4e8b\u5b9e\u8868 2",
+  },
 ];
 
 const adminEls = {
